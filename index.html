@@ -1497,6 +1497,35 @@
 
         #edit-modal.show {
             display: flex;
+            animation: bounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        #edit-modal.hide {
+            animation: bounceOut 0.35s cubic-bezier(0.36, -0.3, 0.64, 1) forwards;
+        }
+
+        @keyframes bounceOut {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
         }
 
         #edit-modal-title {
@@ -2299,6 +2328,9 @@
         /* ===== تغيير الدرس ===== */
         function openEditModal(id, c, currentLesson) {
             editingSlotId = id;
+            const modal = document.getElementById('edit-modal');
+            modal.classList.remove('hide');
+
             const sel = document.getElementById('edit-lesson-select');
             const customInput = document.getElementById('edit-lesson-custom');
             sel.innerHTML = '';
@@ -2325,7 +2357,7 @@
             }
             sel.appendChild(otherOpt);
 
-            document.getElementById('edit-modal').classList.add('show');
+            modal.classList.add('show');
         }
         function toggleCustomInput() {
             const sel = document.getElementById('edit-lesson-select');
@@ -2338,7 +2370,12 @@
             }
         }
         function closeEditModal() {
-            document.getElementById('edit-modal').classList.remove('show');
+            const modal = document.getElementById('edit-modal');
+            modal.classList.add('hide');
+            setTimeout(() => {
+                modal.classList.remove('show');
+                modal.classList.remove('hide');
+            }, 300);
             editingSlotId = null;
         }
         function saveCustomLesson() {
