@@ -1454,6 +1454,82 @@
                 transform: translateY(0)
             }
         }
+
+        .slot-edit-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, .3);
+            cursor: pointer;
+            z-index: 2;
+            transition: all .2s;
+            opacity: 0;
+        }
+
+        .slot-wrap:hover .slot-edit-btn {
+            opacity: 1;
+        }
+
+        .slot-edit-btn:hover {
+            color: #fff;
+            transform: scale(1.15);
+        }
+
+        #edit-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(12, 16, 30, 0.98);
+            border: 1px solid rgba(139, 92, 246, .5);
+            border-radius: 16px;
+            padding: 24px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            z-index: 1000;
+            box-shadow: 0 0 50px rgba(139, 92, 246, .4);
+            min-width: 280px;
+            backdrop-filter: blur(16px);
+        }
+
+        #edit-modal.show {
+            display: flex;
+        }
+
+        #edit-modal-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        #edit-lesson-select {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 13px;
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .15);
+            border-radius: 8px;
+            color: #fff;
+            outline: none;
+            font-family: 'Tajawal', Tahoma, Arial, sans-serif;
+        }
+
+        #edit-lesson-select option {
+            background: #0c101e;
+            color: #fff;
+        }
+
+        .edit-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            width: 100%;
+            justify-content: center;
+        }
     </style>
 </head>
 
@@ -1647,8 +1723,36 @@
         </div>
     </div>
 
+    <!-- نافذة تعديل الدرس -->
+    <div id="edit-modal">
+        <div id="edit-modal-title">تغيير الدرس</div>
+        <select id="edit-lesson-select" onchange="toggleCustomInput()"></select>
+        <input type="text" id="edit-lesson-custom" placeholder="اكتب درسك هنا..."
+            style="display: none; width: 100%; padding: 8px 12px; font-size: 13px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .15); border-radius: 8px; color: #fff; outline: none; font-family: 'Tajawal', Tahoma, Arial, sans-serif; margin-top: 4px;">
+        <div class="edit-controls">
+            <button class="timer-btn tbtn-start" onclick="saveCustomLesson()">حفظ</button>
+            <button class="timer-btn tbtn-close" onclick="closeEditModal()">إغلاق</button>
+        </div>
+    </div>
+
     <script>
         const DAYS = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+
+        const SYLLABUS = {
+            math: ['الدوال اللوغاريتمية والأسية', 'النهايات والاستمرارية', 'الاشتقاقية وتطبيقاتها (الدوال العددية)', 'المتتاليات العددية', 'المعادلات التفاضلية', 'الدوال الأصلية والحساب التكاملي', 'الاحتمالات', 'القسمة والموافقات في Z', 'الأعداد الأولية', 'هندسة الفضاء', 'الأعداد المركبة والتحويلات النقطية'],
+            phy: ['المتابعة الزمنية لتحول كيميائي', 'التحولات النووية', 'الظواهر الكهربائية (RC)', 'الظواهر الكهربائية (RL)', 'الاهتزازات الكهربائية (RLC)', 'تطور جملة كيميائية نحو التوازن', 'السقوط الشاقولي', 'حركات الكواكب والأقمار الصناعية', 'الأساسيات في الميكانيك (القذيفة والمستوي المائل)', 'الأسترة وإماهة الإستر', 'الاهتزازات الميكانيكية'],
+            sci: ['آلية تركيب البروتين', 'العلاقة بين بنية ووظيفة البروتين', 'النشاط الإنزيمي للبروتينات', 'دور البروتينات في الاتصال العصبي', 'جيولوجيا (بنية الكرة الأرضية وتكتونية الصفائح)'],
+            tech: ['علم السكون (الأنظمة المثلثية)', 'المميزات الهندسية للمقاطع', 'التحريضات البسيطة (الشد، الانضغاط، القص)', 'الانحناء المستوي البسيط', 'المنشآت العلوية والأساسات', 'الروافد، الأعمدة، الأرضيات، والأسقف', 'الطرق والجسور', 'الطبوغرافيا', 'الخرسانة المسلحة'],
+            ara: ['تقويم نقدي (عصر الضعف، النهضة...)', 'البناء الفكري (شعر المهجر، الثورة...)', 'القواعد (إعراب الجمل، التمييز، الحال...)', 'البلاغة والعروض', 'نص تواصلي ومقال'],
+            lang: ['فهم المقروء (Reading Comprehension)', 'القواعد (Grammar)', 'التعبير الكتابي (Writing)', 'المصطلحات (Vocabulary)'],
+            hist: ['تاريخ: الحرب الباردة', 'تاريخ: التعايش السلمي', 'تاريخ: من الثنائية للأحادية القطبية', 'تاريخ: الثورة الجزائرية', 'جغرافيا: التقدم والتخلف', 'جغرافيا: المبادلات في العالم', 'جغرافيا: القوى الاقتصادية الكبرى'],
+            phi: ['المشكلة والإشكالية', 'انطباق الفكر مع نفسه ومع الواقع', 'المذاهب الفلسفية (العقلاني، التجريبي، ...)', 'فلسفة الرياضيات', 'فلسفة العلوم التجريبية والبيولوجية', 'العلوم الإنسانية (تاريخ، اجتماع، نفس)', 'الشعور واللاشعور'],
+            isl: ['العقيدة الإسلامية ووسائل تثبيتها', 'الإسلام والرسالات السماوية', 'العقل، مقاصد الشريعة، والوقف', 'الربا، بيع المرابحة والصرف', 'مصادر التشريع الإسلامي', 'الصحة الجسمية والنفسية، أسرة، وقيم'],
+            exam: ['امتحان تجريبي شامل', 'حل موضوع بكالوريا سابقة', 'تمرين شامل مقترح', 'رياضيات (موضوع كامل)', 'فيزياء (موضوع كامل)', 'هندسة مدنية (موضوع كامل)'],
+            corr: ['تصحيح مفصل', 'تسجيل في دفتر الأخطاء', 'مراجعة الملاحظات', 'تحليل نقاط الضعف'],
+            rest: ['راحة تامة', 'مراجعة خفيفة جداً', 'قيلولة', 'وقت حر'],
+            empty: ['استراحة قصيرة']
+        };
 
         /* ===== بيانات الشعبتين ===== */
         const BRANCHES = {
@@ -1661,19 +1765,19 @@
                         time: '08:00\n09:30', cells: [
                             { c: 'math', t: 'رياضيات', s: 'الأعداد المركبة' },
                             { c: 'math', t: 'رياضيات', s: 'النهايات والاستمرارية' },
-                            { c: 'phy', t: 'فيزياء', s: 'كيمياء عضوية' },
+                            { c: 'phy', t: 'فيزياء', s: 'تطور جملة كيميائية' },
                             { c: 'math', t: 'رياضيات', s: 'الاحتمالات' },
-                            { c: 'sci', t: 'علوم الطبيعة', s: 'المناعة النوعية' },
+                            { c: 'sci', t: 'علوم الطبيعة', s: 'الإنزيمات' },
                             { c: 'exam', t: 'امتحان تجريبي', s: 'رياضيات كامل' },
                             { c: 'rest', t: 'راحة تامة', s: '' }
                         ]
                     },
                     {
                         time: '09:30\n11:00', cells: [
-                            { c: 'math', t: 'رياضيات', s: 'القسمة الإقليدية' },
-                            { c: 'math', t: 'رياضيات', s: 'الدوال الأسية / لوغ' },
+                            { c: 'math', t: 'رياضيات', s: 'القسمة والموافقات في Z' },
+                            { c: 'math', t: 'رياضيات', s: 'الدوال الأسية واللوغ' },
                             { c: 'phy', t: 'فيزياء', s: 'التحولات النووية' },
-                            { c: 'math', t: 'رياضيات', s: 'المتتاليات' },
+                            { c: 'math', t: 'رياضيات', s: 'المتتاليات العددية' },
                             { c: 'ara', t: 'اللغة العربية', s: 'نص أدبي + تحليل' },
                             { c: 'exam', t: 'امتحان تجريبي', s: 'فيزياء كامل' },
                             { c: 'rest', t: 'راحة تامة', s: '' }
@@ -1681,10 +1785,10 @@
                     },
                     {
                         time: '11:00\n13:00', cells: [
-                            { c: 'math', t: 'رياضيات', s: 'تمارين تطبيقية' },
-                            { c: 'math', t: 'رياضيات', s: 'الحساب التكاملي' },
-                            { c: 'phy', t: 'فيزياء', s: 'الكهرباء — RLC' },
-                            { c: 'phy', t: 'فيزياء', s: 'الميكانيك / نيوتن' },
+                            { c: 'math', t: 'رياضيات', s: 'الاشتقاقية وتطبيقاتها' },
+                            { c: 'math', t: 'رياضيات', s: 'الدوال الأصلية والتكامل' },
+                            { c: 'phy', t: 'فيزياء', s: 'الكهرباء — RC و RL' },
+                            { c: 'phy', t: 'فيزياء', s: 'الميكانيك الأرضي' },
                             { c: 'lang', t: 'اللغة الفرنسية', s: 'فهم وتعبير' },
                             { c: 'exam', t: 'تابع الامتحان', s: '' },
                             { c: 'rest', t: 'راحة تامة', s: '' }
@@ -1699,9 +1803,9 @@
                     },
                     {
                         time: '15:00\n16:30', cells: [
-                            { c: 'phy', t: 'فيزياء', s: 'الميكانيك التطبيقي' },
-                            { c: 'math', t: 'رياضيات', s: 'الهندسة في الفضاء' },
-                            { c: 'phy', t: 'فيزياء', s: 'الظواهر الضوئية' },
+                            { c: 'phy', t: 'فيزياء', s: 'حركات الكواكب والأقمار' },
+                            { c: 'math', t: 'رياضيات', s: 'المعادلات التفاضلية' },
+                            { c: 'phy', t: 'فيزياء', s: 'الأسترة وإماهة الإستر' },
                             { c: 'sci', t: 'علوم الطبيعة', s: 'تركيب البروتين' },
                             { c: 'lang', t: 'اللغة الإنجليزية', s: 'قواعد + تعبير' },
                             { c: 'corr', t: 'تصحيح مفصل', s: 'تحليل كل غلطة' },
@@ -1712,7 +1816,7 @@
                         time: '16:30\n18:00', cells: [
                             { c: 'ara', t: 'اللغة العربية', s: 'قواعد + إملاء' },
                             { c: 'phi', t: 'الفلسفة', s: 'هيكل المقالة' },
-                            { c: 'isl', t: 'الإسلاميات', s: 'مراجعة النصوص' },
+                            { c: 'isl', t: 'الإسلامية', s: 'مراجعة النصوص' },
                             { c: 'hist', t: 'الاجتماعيات', s: 'تاريخ + جغرافيا' },
                             { c: 'phi', t: 'الفلسفة', s: 'تطبيق مقالة كاملة' },
                             { c: 'corr', t: 'دفتر الأخطاء', s: 'مراجعة وتسجيل' },
@@ -1728,21 +1832,21 @@
                 slots: [
                     {
                         time: '08:00\n09:30', cells: [
-                            { c: 'tech', t: 'هندسة مدنية', s: 'الباطون المسلح' },
-                            { c: 'tech', t: 'هندسة مدنية', s: 'الأساسات والتربة' },
-                            { c: 'phy', t: 'فيزياء', s: 'كيمياء — التحولات' },
+                            { c: 'tech', t: 'هندسة مدنية', s: 'الخرسانة المسلحة' },
+                            { c: 'tech', t: 'هندسة مدنية', s: 'الأساسات' },
+                            { c: 'phy', t: 'فيزياء', s: 'تطور جملة كيميائية' },
                             { c: 'math', t: 'رياضيات', s: 'الاحتمالات' },
-                            { c: 'tech', t: 'هندسة مدنية', s: 'الجسور والطرق' },
+                            { c: 'tech', t: 'هندسة مدنية', s: 'الطرق والجسور' },
                             { c: 'exam', t: 'امتحان تجريبي', s: 'هندسة مدنية كامل' },
                             { c: 'rest', t: 'راحة تامة', s: '' }
                         ]
                     },
                     {
                         time: '09:30\n11:00', cells: [
-                            { c: 'tech', t: 'هندسة مدنية', s: 'المقاومة والمواد' },
-                            { c: 'math', t: 'رياضيات', s: 'الدوال الأسية / لوغ' },
+                            { c: 'tech', t: 'هندسة مدنية', s: 'مقاومة المواد' },
+                            { c: 'math', t: 'رياضيات', s: 'الدوال الأسية واللوغ' },
                             { c: 'phy', t: 'فيزياء', s: 'التحولات النووية' },
-                            { c: 'math', t: 'رياضيات', s: 'المتتاليات' },
+                            { c: 'math', t: 'رياضيات', s: 'المتتاليات العددية' },
                             { c: 'ara', t: 'اللغة العربية', s: 'نص أدبي + تحليل' },
                             { c: 'exam', t: 'امتحان تجريبي', s: 'رياضيات + فيزياء' },
                             { c: 'rest', t: 'راحة تامة', s: '' }
@@ -1750,10 +1854,10 @@
                     },
                     {
                         time: '11:00\n13:00', cells: [
-                            { c: 'math', t: 'رياضيات', s: 'الحساب التكاملي' },
-                            { c: 'tech', t: 'هندسة مدنية', s: 'الهياكل والقوى' },
-                            { c: 'phy', t: 'فيزياء', s: 'الكهرباء — RLC' },
-                            { c: 'phy', t: 'فيزياء', s: 'الميكانيك / ديناميك' },
+                            { c: 'math', t: 'رياضيات', s: 'الدوال الأصلية والتكامل' },
+                            { c: 'tech', t: 'هندسة مدنية', s: 'الأنظمة المثلثية' },
+                            { c: 'phy', t: 'فيزياء', s: 'الكهرباء — RC و RL' },
+                            { c: 'phy', t: 'فيزياء', s: 'الميكانيك الأرضي' },
                             { c: 'lang', t: 'اللغة الفرنسية', s: 'فهم وتعبير' },
                             { c: 'exam', t: 'تابع الامتحان', s: '' },
                             { c: 'rest', t: 'راحة تامة', s: '' }
@@ -1768,10 +1872,10 @@
                     },
                     {
                         time: '15:00\n16:30', cells: [
-                            { c: 'tech', t: 'هندسة مدنية', s: 'رسم فني + مخططات' },
-                            { c: 'math', t: 'رياضيات', s: 'الهندسة التحليلية' },
-                            { c: 'phy', t: 'فيزياء', s: 'الظواهر الضوئية' },
-                            { c: 'tech', t: 'هندسة مدنية', s: 'تمارين تطبيقية' },
+                            { c: 'tech', t: 'هندسة مدنية', s: 'المنشآت العلوية' },
+                            { c: 'math', t: 'رياضيات', s: 'القسمة والموافقات في Z' },
+                            { c: 'phy', t: 'فيزياء', s: 'الأسترة وإماهة الإستر' },
+                            { c: 'tech', t: 'هندسة مدنية', s: 'التحريضات البسيطة' },
                             { c: 'lang', t: 'اللغة الإنجليزية', s: 'قواعد + تعبير' },
                             { c: 'corr', t: 'تصحيح مفصل', s: 'تحليل كل غلطة' },
                             { c: 'rest', t: 'مراجعة خفيفة', s: 'ملخصات فقط' }
@@ -1781,8 +1885,8 @@
                         time: '16:30\n18:00', cells: [
                             { c: 'ara', t: 'اللغة العربية', s: 'قواعد + إملاء' },
                             { c: 'phi', t: 'الفلسفة', s: 'هيكل المقالة' },
-                            { c: 'isl', t: 'الإسلاميات', s: 'مراجعة النصوص' },
-                            { c: 'hist', t: 'التاريخ والجغرافيا', s: 'مراجعة شاملة' },
+                            { c: 'isl', t: 'الإسلامية', s: 'مراجعة النصوص' },
+                            { c: 'hist', t: 'الاجتماعيات', s: 'مراجعة شاملة' },
                             { c: 'phi', t: 'الفلسفة', s: 'تطبيق مقالة كاملة' },
                             { c: 'corr', t: 'دفتر الأخطاء', s: 'مراجعة وتسجيل' },
                             { c: 'rest', t: 'نوم مبكر', s: '' }
@@ -1793,8 +1897,9 @@
         };
 
         let currentBranch = 'math';
-        let doneState = {}, dailyGoals = [];
+        let doneState = {}, dailyGoals = [], customLessons = {};
         let timerInterval = null, timerSeconds = 90 * 60, timerRunning = false, activePreset = 90;
+        let editingSlotId = null;
         let heartsAnimFrame = null;
         let kHeartsAnimFrame = null;
 
@@ -2049,12 +2154,14 @@
         function saveAll() {
             localStorage.setItem('bac_done2', JSON.stringify(doneState));
             localStorage.setItem('bac_dgoals2', JSON.stringify(dailyGoals));
+            localStorage.setItem('bac_lessons2', JSON.stringify(customLessons));
             const notes = {}; document.querySelectorAll('.note-input').forEach(n => notes[n.dataset.day] = n.value);
             localStorage.setItem('bac_notes2', JSON.stringify(notes));
             localStorage.setItem('bac_branch', currentBranch);
         }
         function loadAll() {
             try { doneState = JSON.parse(localStorage.getItem('bac_done2') || '{}') } catch (e) { doneState = {} }
+            try { customLessons = JSON.parse(localStorage.getItem('bac_lessons2') || '{}') } catch (e) { customLessons = {} }
             try { const g = JSON.parse(localStorage.getItem('bac_dgoals2')); dailyGoals = g && g.length === 7 ? g : DAYS.map(() => []); } catch (e) { dailyGoals = DAYS.map(() => []) }
         }
 
@@ -2170,8 +2277,10 @@
                 row.cells.forEach((cell, ci) => {
                     const td = document.createElement('td');
                     const id = `${currentBranch}_${ri}_${ci}`, isDone = doneState[id], isSkip = cell.c === 'empty' || cell.c === 'rest';
+                    const displayLesson = customLessons[id] || cell.s;
                     td.innerHTML = `<div class="slot-wrap${isDone ? ' done' : ''}" id="wrap_${id}" onclick="toggleDone('${id}',${isSkip})">
-        <span class="slot ${cell.c}">${cell.t}${cell.s ? `<span class="sub">${cell.s}</span>` : ''}</span>
+        ${!isSkip ? `<span class="slot-edit-btn" onclick="event.stopPropagation();openEditModal('${id}', '${cell.c}', '${displayLesson}')">✏️</span>` : ''}
+        <span class="slot ${cell.c}">${cell.t}${displayLesson ? `<span class="sub">${displayLesson}</span>` : ''}</span>
         ${!isSkip ? `<span class="slot-timer-btn" onclick="event.stopPropagation();openTimer('${cell.t}')">⏱ مؤقت</span>` : ''}
       </div>`;
                     tr.appendChild(td);
@@ -2185,6 +2294,69 @@
             doneState[id] = !doneState[id];
             const w = document.getElementById('wrap_' + id); if (w) w.classList.toggle('done', doneState[id]);
             updateProgress(); saveAll();
+        }
+
+        /* ===== تغيير الدرس ===== */
+        function openEditModal(id, c, currentLesson) {
+            editingSlotId = id;
+            const sel = document.getElementById('edit-lesson-select');
+            const customInput = document.getElementById('edit-lesson-custom');
+            sel.innerHTML = '';
+            customInput.style.display = 'none';
+            customInput.value = '';
+
+            const opts = SYLLABUS[c] ? [...SYLLABUS[c]] : [currentLesson];
+            let isCustom = currentLesson && !opts.includes(currentLesson);
+
+            opts.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt; el.textContent = opt;
+                if (!isCustom && opt === currentLesson) el.selected = true;
+                sel.appendChild(el);
+            });
+
+            const otherOpt = document.createElement('option');
+            otherOpt.value = '__custom__';
+            otherOpt.textContent = 'أخرى... (كتابة يدوية)';
+            if (isCustom) {
+                otherOpt.selected = true;
+                customInput.style.display = 'block';
+                customInput.value = currentLesson;
+            }
+            sel.appendChild(otherOpt);
+
+            document.getElementById('edit-modal').classList.add('show');
+        }
+        function toggleCustomInput() {
+            const sel = document.getElementById('edit-lesson-select');
+            const customInput = document.getElementById('edit-lesson-custom');
+            if (sel.value === '__custom__') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.remove('show');
+            editingSlotId = null;
+        }
+        function saveCustomLesson() {
+            if (!editingSlotId) return;
+            const sel = document.getElementById('edit-lesson-select');
+            const customInput = document.getElementById('edit-lesson-custom');
+            let val = sel.value;
+            if (val === '__custom__') {
+                val = customInput.value.trim();
+                if (!val) {
+                    alert('الرجاء كتابة اسم الدرس!');
+                    return;
+                }
+            }
+            customLessons[editingSlotId] = val;
+            saveAll();
+            buildTable();
+            closeEditModal();
         }
 
         /* ===== أهداف يومية ===== */
@@ -2287,7 +2459,7 @@
 
         function resetAll() {
             if (!confirm('هل تريد مسح كل التقدم والأهداف والملاحظات؟')) return;
-            doneState = {}; dailyGoals = DAYS.map(() => []); localStorage.clear();
+            doneState = {}; dailyGoals = DAYS.map(() => []); customLessons = {}; localStorage.clear();
             buildTable(); buildDailyGoals(); buildNotes(); updateProgress();
         }
 
